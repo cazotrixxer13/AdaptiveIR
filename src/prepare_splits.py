@@ -1,36 +1,18 @@
 
-import json
 import random
 from pathlib import Path
+
+from utils import DATASETS, load_json, read_jsonl, save_json
 
 SEED = 6
 SCIFACT_VALIDATION_RATIO = 0.20
 ROUTER_TRAIN_RATIO = 0.60
 
 
-def load_json(path):
-    with path.open("r", encoding="utf-8") as file:
-        return json.load(file)
-
-
-def save_json(path, data):
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    with path.open("w", encoding="utf-8") as file:
-        json.dump(data, file, ensure_ascii=False)
-
-
 def load_processed_queries(dataset_name):
     path = Path("data/processed") / dataset_name / "queries.jsonl"
 
-    queries = {}
-
-    with path.open("r", encoding="utf-8") as file:
-        for line in file:
-            row = json.loads(line)
-            queries[row["query_id"]] = row["text"]
-
-    return queries
+    return {row["query_id"]: row["text"] for row in read_jsonl(path)}
 
 
 def load_qrels(dataset_name):
@@ -101,7 +83,7 @@ def prepare_dataset(dataset_name):
 
 
 def main():
-    for dataset_name in ["fiqa", "scifact"]:
+    for dataset_name in DATASETS:
         print(f"\nPreparing {dataset_name.upper()}")
         prepare_dataset(dataset_name)
 

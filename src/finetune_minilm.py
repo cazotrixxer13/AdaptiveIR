@@ -1,5 +1,4 @@
 import argparse
-from pathlib import Path
 
 from datasets import load_dataset
 from sentence_transformers import (
@@ -10,13 +9,14 @@ from sentence_transformers import (
 )
 from sentence_transformers.training_args import BatchSamplers
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+from utils import DATASETS, PROJECT_ROOT
+
 BASE_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 OUTPUT_DIR = PROJECT_ROOT / "models" / "minilm_finetuned"
 
 
 def load_training_pairs():
-    filenames = [PROJECT_ROOT / "data" / "training" / dataset / "retriever_model_inputs.jsonl" for dataset in ("fiqa", "scifact")]
+    filenames = [PROJECT_ROOT / "data" / "training" / dataset / "retriever_model_inputs.jsonl" for dataset in DATASETS]
     train_dataset = load_dataset("json", data_files=[str(path) for path in filenames], split="train")
 
     return train_dataset

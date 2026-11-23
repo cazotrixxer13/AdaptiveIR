@@ -1,5 +1,4 @@
 
-import json
 import re
 from pathlib import Path
 
@@ -10,8 +9,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import StandardScaler
 
+from utils import DATASETS, load_json, save_json, write_jsonl
 
-DATASETS = ["fiqa", "scifact"]
+
 
 # TODO: When doing the router training we'll have to check these
 N_COMPONENTS = 128
@@ -23,10 +23,7 @@ def load_split_queries(split_name):
     rows = []
 
     for dataset_name in DATASETS:
-        path = (Path("data/splits") / dataset_name / f"queries_{split_name}.json")
-
-        with path.open("r", encoding="utf-8") as file:
-            queries = json.load(file)
+        queries = load_json(Path("data/splits") / dataset_name / f"queries_{split_name}.json")
 
         for query_id, query_text in sorted(queries.items()):
             rows.append({
@@ -99,17 +96,10 @@ def transform_queries(rows, vectorizer, svd, scaler):
 
 
 def save_features(path, rows, features):
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    with path.open("w", encoding="utf-8") as file:
-        for row, vector in zip(rows, features):
-            record = {
-                "dataset": row["dataset"],
-                "query_id": row["query_id"],
-                "features": vector.tolist()
-            }
-
-            file.write(json.dumps(record, ensure_ascii=False) + "\n")
+    write_jsonl(path, (
+        {"dataset": row["dataset"], "query_id": row["query_id"], "features": vector.tolist()}
+        for row, vector in zip(rows, features)
+    ))
 
 
 
@@ -163,8 +153,7 @@ def main():
         "svd_explained_variance_ratio": float(svd.explained_variance_ratio_.sum())
     }
 
-    with (output_dir / "metadata.json").open("w", encoding="utf-8") as file:
-        json.dump(metadata, file, indent=2)
+    save_json(output_dir / "metadata.json", metadata, indent=2)
 
     print("\nRouter feature extraction completed!")
 

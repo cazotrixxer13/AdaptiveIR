@@ -1,7 +1,8 @@
 
 import re
-import json
 from pathlib import Path
+
+from utils import DATASETS, load_json, write_jsonl
 
 
 def normalize_text(text):
@@ -20,40 +21,27 @@ def combine_title_text(title, text):
 def preprocess_dataset(dataset_name):
     input_dir = Path("data/parsed") / dataset_name
     output_dir = Path("data/processed") / dataset_name
-    output_dir.mkdir(parents=True, exist_ok=True)
 
-    with (input_dir / "corpus.json").open("r", encoding="utf-8") as file:
-        corpus = json.load(file)
-
-    with (input_dir / "queries.json").open("r", encoding="utf-8") as file:
-        queries = json.load(file)
+    corpus = load_json(input_dir / "corpus.json")
+    queries = load_json(input_dir / "queries.json")
 
     empty_doc_ids = set()
 
-    with (output_dir / "corpus.jsonl").open("w", encoding="utf-8") as file:
-        for doc_id, doc in corpus.items():
-            retrieval_text = combine_title_text(doc["title"], doc["text"])
+    processed_docs = []
 
-            if not retrieval_text:
-                empty_doc_ids.add(doc_id)
+    for doc_id, doc in corpus.items():
+        retrieval_text = combine_title_text(doc["title"], doc["text"])
 
-            processed_doc = {
-                "doc_id": doc_id,
-                "retrieval_text": retrieval_text
-            }
+        if not retrieval_text:
+            empty_doc_ids.add(doc_id)
 
-            file.write(json.dumps(processed_doc, ensure_ascii=False) + "\n")
+        processed_docs.append({"doc_id": doc_id, "retrieval_text": retrieval_text})
 
-    with (output_dir / "queries.jsonl").open("w", encoding="utf-8") as file:
-        for query_id, query_text in queries.items():
-            clean_query = normalize_text(query_text)
-
-            processed_query = {
-                "query_id": query_id,
-                "text": clean_query
-            }
-
-            file.write(json.dumps(processed_query, ensure_ascii=False) + "\n")
+    write_jsonl(output_dir / "corpus.jsonl", processed_docs)
+    write_jsonl(output_dir / "queries.jsonl", (
+        {"query_id": query_id, "text": normalize_text(query_text)}
+        for query_id, query_text in queries.items()
+    ))
 
     print(f"\nProcessed {dataset_name.upper()}")
     print(f"Documents: {len(corpus)}")
@@ -67,8 +55,7 @@ def check_empty_doc_qrels(dataset_name, empty_doc_ids):
     input_dir = Path("data/parsed") / dataset_name
 
     for qrels_file in sorted(input_dir.glob("qrels_*.json")):
-        with qrels_file.open("r", encoding="utf-8") as file:
-            qrels = json.load(file)
+        qrels = load_json(qrels_file)
 
         affected_queries = set()
         relevant_judgments = 0
@@ -87,7 +74,7 @@ def check_empty_doc_qrels(dataset_name, empty_doc_ids):
 
 
 def main():
-    for dataset_name in ["fiqa", "scifact"]:
+    for dataset_name in DATASETS:
         empty_doc_ids = preprocess_dataset(dataset_name)
         check_empty_doc_qrels(dataset_name, empty_doc_ids)
 

@@ -1,7 +1,8 @@
 
 from datasets import load_dataset
-import json
 from pathlib import Path
+
+from utils import DATASETS, save_json
 
 def load_beir_dataset(dataset_name):
     corpus_raw = load_dataset(f"BeIR/{dataset_name}", "corpus", split="corpus")
@@ -60,21 +61,16 @@ def validate_dataset(corpus, queries, qrels):
 
 def save_parsed_dataset(dataset_name, corpus, queries, qrels):
     output_dir = Path("data/parsed") / dataset_name
-    output_dir.mkdir(parents=True, exist_ok=True)
 
-    def save_json(filename, data):
-        with (output_dir / filename).open("w", encoding="utf-8") as file:
-            json.dump(data, file, ensure_ascii=False)
-
-    save_json("corpus.json", corpus)
-    save_json("queries.json", queries)
+    save_json(output_dir / "corpus.json", corpus)
+    save_json(output_dir / "queries.json", queries)
 
     for split, judgments in qrels.items():
-        save_json(f"qrels_{split}.json", judgments)
+        save_json(output_dir / f"qrels_{split}.json", judgments)
 
 
 def main():
-    for dataset_name in ["fiqa", "scifact"]:
+    for dataset_name in DATASETS:
         print(f"\nParsing {dataset_name.upper()}")
 
         corpus, queries, qrels = load_beir_dataset(dataset_name)

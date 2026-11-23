@@ -2,10 +2,7 @@
 import json
 from pathlib import Path
 
-
-def load_json(path):
-    with path.open("r", encoding="utf-8") as file:
-        return json.load(file)
+from utils import DATASETS, load_split, read_jsonl
 
 
 def load_required_documents(dataset_name, document_ids):
@@ -13,24 +10,15 @@ def load_required_documents(dataset_name, document_ids):
         Path("data/processed") / dataset_name / "corpus.jsonl"
     )
 
-    documents = {}
-
-    with corpus_path.open("r", encoding="utf-8") as file:
-        for line in file:
-            doc = json.loads(line)
-            doc_id = doc["doc_id"]
-
-            if doc_id in document_ids:
-                documents[doc_id] = doc["retrieval_text"]
-
-    return documents
+    return {
+        doc["doc_id"]: doc["retrieval_text"]
+        for doc in read_jsonl(corpus_path)
+        if doc["doc_id"] in document_ids
+    }
 
 
 def prepare_training_pairs(dataset_name):
-    split_dir = Path("data/splits") / dataset_name
-
-    queries = load_json(split_dir / "queries_retriever_train.json")
-    qrels = load_json(split_dir / "qrels_retriever_train.json")
+    queries, qrels = load_split(dataset_name, "retriever_train")
 
     positive_doc_ids = {
         doc_id for judged_docs in qrels.values() for doc_id, score in judged_docs.items() if score > 0
@@ -102,7 +90,7 @@ def prepare_training_pairs(dataset_name):
 
 
 def main():
-    for dataset_name in ["fiqa", "scifact"]:
+    for dataset_name in DATASETS:
         prepare_training_pairs(dataset_name)
 
 

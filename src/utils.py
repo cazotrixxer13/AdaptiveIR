@@ -8,6 +8,7 @@ import numpy as np
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIRECTORY = PROJECT_ROOT / "data"
 TOP_K = 100
+DATASETS = ["fiqa", "scifact"]
 
 
 def load_json(path):
@@ -21,6 +22,40 @@ def load_split(dataset_name, split_name):
     qrels = load_json(split_directory / f"qrels_{split_name}.json")
 
     return queries, qrels
+
+
+def save_json(path, data, indent=None):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    with path.open("w", encoding="utf-8") as file:
+        json.dump(data, file, ensure_ascii=False, indent=indent)
+
+
+def read_jsonl(path):
+    with Path(path).open("r", encoding="utf-8") as file:
+        for line in file:
+            yield json.loads(line)
+
+
+def write_jsonl(path, records):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    with path.open("w", encoding="utf-8") as file:
+        for record in records:
+            file.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+def make_bm25_tokenizer():
+    from bm25s.tokenization import Tokenizer
+
+    return Tokenizer(
+        lower=True,
+        splitter=r"(?u)\b\w+\b",
+        stopwords=None,
+        stemmer=None,
+    )
 
 
 # ---------------------------

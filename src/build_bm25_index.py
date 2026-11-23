@@ -1,39 +1,25 @@
 
-import json
 from pathlib import Path
 
 import bm25s
-from bm25s.tokenization import Tokenizer
+
+from utils import DATASETS, read_jsonl, make_bm25_tokenizer
 
 
 def load_documents(dataset_name):
     corpus_path = (Path("data/processed") / dataset_name / "corpus.jsonl")
-    documents = []
 
-    with corpus_path.open("r", encoding="utf-8") as file:
-        for line in file:
-            row = json.loads(line)
-
-            if not row["retrieval_text"].strip():
-                continue
-
-            documents.append({
-                "doc_id": row["doc_id"],
-                "text": row["retrieval_text"]
-            })
-
-    return documents
+    return [
+        {"doc_id": row["doc_id"], "text": row["retrieval_text"]}
+        for row in read_jsonl(corpus_path)
+        if row["retrieval_text"].strip()
+    ]
 
 
 def build_bm25_index(dataset_name):
     documents = load_documents(dataset_name)
     texts = [doc["text"] for doc in documents]
-    tokenizer = Tokenizer(
-        lower=True,
-        splitter=r"(?u)\b\w+\b",
-        stopwords=None,
-        stemmer=None
-    )
+    tokenizer = make_bm25_tokenizer()
 
     corpus_tokens = tokenizer.tokenize(
         texts,
@@ -65,7 +51,7 @@ def build_bm25_index(dataset_name):
 
 
 def main():
-    for dataset_name in ["fiqa", "scifact"]:
+    for dataset_name in DATASETS:
         build_bm25_index(dataset_name)
 
 
